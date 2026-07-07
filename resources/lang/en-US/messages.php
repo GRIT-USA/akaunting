@@ -32,7 +32,7 @@ return [
         'change_type'       => 'Error: Can not change the type because it has :text related!',
         'invalid_apikey'    => 'Error: The API Key entered is invalid!',
         'empty_apikey'      => 'Error: You have not entered your API Key! <a href=":url" class="font-bold underline underline-offset-4">Click here</a> to enter your API Key.',
-        'import_column'     => 'Error: :message Sheet name: :sheet. Line number: :line.',
+        'import_column'     => 'Error: :message Column name: :column. Line number: :line.',
         'import_sheet'      => 'Error: Sheet name is not valid. Please, check the sample file.',
         'same_amount'       => 'Error: The total amount of split must be exactly the same as the :transaction total: :amount',
         'over_match'        => 'Error: :type not connected! The amount you entered can not exceed the payment total: :amount',
@@ -46,6 +46,8 @@ return [
         'disable_code'      => 'Warning: You are not allowed to disable or change the currency of <b>:name</b> because it has :text related.',
         'payment_cancel'    => 'Warning: You have cancelled your recent :method payment!',
         'missing_transfer'  => 'Warning: The transfer related to this transaction is missing. You should consider deleting this transaction.',
+        'connect_tax'       => 'Warning: This :type has a tax amount. Taxes added to the :type can not be connected, so the tax will be added to the total and calculated accordingly.',
+        'contact_change'    => 'Warning: You are not allowed to change the contact on a :type that has already been sent, received, or paid!',
     ],
 
 ];

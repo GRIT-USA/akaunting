@@ -4,8 +4,8 @@ namespace App\Models\Auth;
 
 use Akaunting\Sortable\Traits\Sortable;
 use App\Notifications\Auth\Reset;
+use App\Traits\HasApiTokens;
 use App\Traits\Media;
-use App\Traits\HasOAuthScopes;
 use App\Traits\Owners;
 use App\Traits\Sources;
 use App\Traits\Tenants;
