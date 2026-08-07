@@ -88,6 +88,7 @@ class TestCompany extends Seeder
             'companies' => [company_id()],
             'roles' => ['1'],
             'enabled' => '1',
+            'send_invitation' => false,
         ]));
 
         $this->command->info('Test user created.');
@@ -105,6 +106,7 @@ class TestCompany extends Seeder
             'company_id' => company_id(),
             'enabled' => '1',
             'create_user' => 'true',
+            'send_invitation' => false,
         ]));
 
         $this->command->info('Test customer created.');

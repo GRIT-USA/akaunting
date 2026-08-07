@@ -22,7 +22,7 @@ class CancelDocument extends Job
         $this->authorize();
 
         \DB::transaction(function () {
-            $this->model->loadMissing(['transactions', 'recurring']);
+            $this->model->load(['transactions', 'recurring']);
 
             $this->deleteRelationships($this->model, [
                 'transactions', 'recurring'
