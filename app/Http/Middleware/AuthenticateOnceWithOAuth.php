@@ -32,7 +32,7 @@ class AuthenticateOnceWithOAuth
             ], 401);
         }
 
-        $guard = config('oauth.guards.api', 'passport');
+        $guard = config('oauth.guards.api', 'api');
         $shouldLog = ! app()->environment('production');
 
         if ($shouldLog) {
@@ -45,8 +45,25 @@ class AuthenticateOnceWithOAuth
             ]);
         }
 
-        // Check if user is authenticated via Passport
-        if (! Auth::guard($guard)->check()) {
+        try {
+            $guard_instance = Auth::guard($guard);
+        } catch (\Throwable $exception) {
+            if ($shouldLog) {
+                Log::warning('OAuth: Guard unavailable', [
+                    'guard' => $guard,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Unauthenticated.',
+                'error' => 'invalid_token',
+                'error_description' => 'The access token provided is expired, revoked, malformed, or invalid.',
+            ], 401);
+        }
+
+        // Check if user is authenticated via the configured OAuth guard.
+        if (! $guard_instance->check()) {
             if ($shouldLog) {
                 Log::warning('OAuth: Authentication failed', [
                     'guard' => $guard,
@@ -62,8 +79,8 @@ class AuthenticateOnceWithOAuth
             ], 401);
         }
 
-        // Fire authenticated event with passport protocol
-        if ($user = Auth::guard($guard)->user()) {
+        // Fire authenticated event with the configured token protocol.
+        if ($user = $guard_instance->user()) {
             if ($shouldLog) {
                 Log::debug('OAuth: Authentication successful', [
                     'user_id' => $user->id,
@@ -101,8 +118,33 @@ class AuthenticateOnceWithOAuth
 
         $user->withAccessToken($accessToken);
         Auth::setUser($user);
+
+        foreach (['web', 'api'] as $guard) {
+            $this->setGuardUser($guard, $user);
+        }
+
         $accessToken->forceFill(['last_used_at' => now()])->save();
 
         return true;
+    }
+
+    private function setGuardUser(string $guard, $user): void
+    {
+        try {
+            $guard_instance = Auth::guard($guard);
+        } catch (\Throwable $exception) {
+            if (! app()->environment('production')) {
+                Log::debug('OAuth: Skipping unavailable guard', [
+                    'guard' => $guard,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+
+            return;
+        }
+
+        if (method_exists($guard_instance, 'setUser')) {
+            $guard_instance->setUser($user);
+        }
     }
 }
