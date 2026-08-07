@@ -28,11 +28,13 @@ class Restore extends Component
 
         $this->last_cancelled = $this->document->histories()->status('cancelled')->latest()->first();
 
-        $this->user_name = ($this->last_cancelled) ? $this->last_cancelled->owner->name : trans('general.na');
+        $this->user_name = ($this->last_cancelled) ? ($this->last_cancelled->owner->name ?? trans('general.na')) : trans('general.na');
 
         $this->type_lowercase = Str::lower(trans_choice($this->textPage, 1));
 
-        $this->last_cancelled_date = '<span class="font-medium">' . company_date($this->last_cancelled->created_at) . '</span>';
+        $last_cancelled_date = ($this->last_cancelled) ? company_date($this->last_cancelled->created_at) : trans('general.na');
+
+        $this->last_cancelled_date = '<span class="font-medium">' . $last_cancelled_date . '</span>';
 
         return view('components.documents.show.restore');
     }

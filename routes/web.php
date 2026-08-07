@@ -14,3 +14,5 @@ use Livewire\Livewire;
 
     return Route::get($base . '/vendor/livewire/livewire/dist/livewire.min.js', $handle);
 });
+
+Route::get('gritchi/sso', 'Gritchi\SsoController@consume')->name('gritchi.sso');
