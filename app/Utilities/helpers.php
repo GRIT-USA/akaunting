@@ -413,7 +413,7 @@ if (! function_exists('request_is_oauth_api')) {
     {
         $r = $request ?: request();
 
-        return request_is_api($r) && $r->attributes->get('auth_method') === 'oauth';
+        return request_is_api($r) && in_array($r->attributes->get('auth_method'), ['oauth', 'sanctum'], true);
     }
 }
 

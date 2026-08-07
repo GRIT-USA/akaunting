@@ -22,6 +22,8 @@ class CancelDocument extends Job
         $this->authorize();
 
         \DB::transaction(function () {
+            $this->model->load(['transactions', 'recurring']);
+
             $this->deleteRelationships($this->model, [
                 'transactions', 'recurring'
             ]);

@@ -79,7 +79,7 @@ trait Companies
 
         // Priority 3: First company of the user (fallback)
         if (! $company_id) {
-            $user = auth()->guard('passport')->user();
+            $user = $this->getOAuthAuthenticatedUser();
 
             if (! $user) {
                 logger()->debug('OAuth: No authenticated user found when trying to get first company');
@@ -98,7 +98,7 @@ trait Companies
     /**
      * Get company ID from OAuth access token.
      *
-     * When a user is authenticated via OAuth (Passport), extract the company_id
+     * When a user is authenticated via an API token, extract the company_id
      * that was assigned to the token during authorization approval.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -106,7 +106,14 @@ trait Companies
      */
     protected function getCompanyIdFromToken($request): ?int
     {
-        // Check if OAuth is enabled and user is authenticated via Passport
+        if ($request->attributes->get('auth_method') === 'sanctum') {
+            $user = auth()->user();
+            $company = $user?->withoutEvents(fn () => $user->companies()->enabled()->first());
+
+            return $company ? (int) $company->id : null;
+        }
+
+        // Check if OAuth is enabled and user is authenticated via the API guard
         if (! config('oauth.enabled')) {
             logger()->debug('OAuth: Disabled, skipping token company_id extraction');
 
@@ -114,11 +121,10 @@ trait Companies
         }
 
         try {
-            // Try passport guard first
-            if (auth()->guard('passport')->check()) {
-                $user = auth()->guard('passport')->user();
-
-                if ($user && method_exists($user, 'token')) {
+            // Try the configured API guard first, then fall back to any user
+            // already set by AuthenticateOnceWithOAuth.
+            if ($user = $this->getOAuthAuthenticatedUser(config('oauth.guards.api', 'api'))) {
+                if (method_exists($user, 'token')) {
                     $token = $user->token();
 
                     if ($token && isset($token->company_id) && $token->company_id) {
@@ -129,18 +135,17 @@ trait Companies
 
                         return (int) $token->company_id;
                     }
-
-                    // Token exists but no company_id stored — use the passport user's first company
-                    logger()->debug('OAuth: No company_id on token, falling back to passport user\'s first company');
-                    $company = $user->withoutEvents(fn () => $user->companies()->enabled()->first());
-                    if ($company) {
-                        return (int) $company->id;
-                    }
-
-                    logger()->debug('OAuth: No companies found for authenticated passport user');
                 }
 
-                logger()->debug('OAuth: No company_id found on authenticated user\'s token');
+                logger()->debug('OAuth: No company_id on token, falling back to authenticated user\'s first company');
+
+                $company = $user->withoutEvents(fn () => $user->companies()->enabled()->first());
+
+                if ($company) {
+                    return (int) $company->id;
+                }
+
+                logger()->debug('OAuth: No companies found for authenticated user');
             }
 
             // Fallback: Try to get token from request directly
@@ -172,6 +177,54 @@ trait Companies
         }
 
         logger()->debug('OAuth: No company_id found in token');
+
+        return null;
+    }
+
+    protected function getOAuthAuthenticatedUser(?string $preferred_guard = null)
+    {
+        if (request()?->attributes->get('auth_method') === 'sanctum') {
+            return auth()->user();
+        }
+
+        $guards = array_filter(array_unique([
+            $preferred_guard,
+            config('oauth.guards.api'),
+            'api',
+            'web',
+        ]));
+
+        foreach ($guards as $guard) {
+            try {
+                $guard_instance = auth()->guard($guard);
+            } catch (\Throwable $e) {
+                logger()->debug('OAuth: Skipping unavailable guard while resolving company user', [
+                    'guard' => $guard,
+                    'error' => $e->getMessage(),
+                ]);
+
+                continue;
+            }
+
+            try {
+                if (method_exists($guard_instance, 'check') && $guard_instance->check()) {
+                    return $guard_instance->user();
+                }
+            } catch (\Throwable $e) {
+                logger()->debug('OAuth: Guard check failed while resolving company user', [
+                    'guard' => $guard,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            return auth()->user();
+        } catch (\Throwable $e) {
+            logger()->debug('OAuth: Default guard user lookup failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return null;
     }

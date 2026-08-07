@@ -9,6 +9,7 @@ use App\Events\Document\DocumentUpdating;
 use App\Interfaces\Job\ShouldUpdate;
 use App\Jobs\Document\CreateDocumentItemsAndTotals;
 use App\Models\Document\Document;
+use App\Observers\GritchiFinance;
 use App\Traits\Relationships;
 use Illuminate\Support\Str;
 
@@ -82,6 +83,10 @@ class UpdateDocument extends Job implements ShouldUpdate
         });
 
         event(new DocumentUpdated($this->model, $this->request));
+
+        if ($this->model->type === Document::INVOICE_TYPE) {
+            app(GritchiFinance::class)->syncDocument($this->model);
+        }
 
         return $this->model;
     }
