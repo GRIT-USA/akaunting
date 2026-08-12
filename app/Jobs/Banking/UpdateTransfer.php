@@ -88,6 +88,7 @@ class UpdateTransfer extends Job implements ShouldUpdate
                 'company_id' => $this->request['company_id'],
                 'expense_transaction_id' => $expense_transaction->id,
                 'income_transaction_id' => $income_transaction->id,
+                'created_from' => $this->request->get('created_from', $this->model->created_from),
             ]);
         });
 
